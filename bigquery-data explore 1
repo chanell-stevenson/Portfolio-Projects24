@@ -1,0 +1,40 @@
+BigQuery Data Exploration Part 1
+
+Step 1 - While exploring the dataset, look at the Schema tab and read through the descriptions provided for each column, to get a sense of what data is in this table. This will help you answer the questions below.
+
+Step 2 - Answer the following questions
+
+There are several acronyms used in this dataset. For each acronym below, write out what it stands for:
+CoC = Continuum of Care Area
+Sheltered_ES = Homeless in Emergency Shelters
+Sheltered_TH = Homeless in Transitional Housing
+Sheltered_SH = Homeless in Safe Haven Housing
+What are the only 3 columns that are NOT an Integer type?
+CoC_Number, CoC_Name, CoC_Category
+
+Is there any way to determine which state each row of data is located in?
+Yes, by the preview tab
+
+How many total rows of data are there?
+2768
+
+What might be some reasons that someone would use this dataset (no wrong answers here, just trying to think about how this data could be used)?                                                                                                             
+                                                                                                                                                                    To determine min/max occupants per city/state, determine if there are enough shelters to accommodate the homeless, get a prediction of how many more shelters are needed for the increase in homelessness
+
+
+
+Step 3 - While you have the dataset selected, click on the Query button, and choose “In New Tab”. In the new query window, you can delete all of the SQL code there, and copy and paste the following code, then run it to create a new table:
+
+CREATE TABLE Exploration_Project.homelessness AS
+SELECT CoC_Number, LEFT(CoC_Number, 2) AS State, CoC_Name, Overall_Homeless, Sheltered_ES_Homeless, Sheltered_TH_Homeless, Sheltered_SH_Homeless, Sheltered_Total_Homeless, Unsheltered_Homeless, Homeless_Individuals, Homeless_People_in_Families, Chronically_Homeless, Homeless_Veterans, Homeless_Unaccompanied_Youth_Under_18, Count_Year
+FROM `bigquery-public-data.sdoh_hud_pit_homelessness.hud_pit_by_coc`
+
+  
+
+Do a quick Google search to figure out what the SQL function LEFT( ) does. In the query we just ran, what does the line of code, LEFT(CoC_Number, 2) AS State, do?
+	
+	Starting from the left, this function extracts 2 characters from the string which equals the state 
+
+
+Step 4 - Open the new table you just created and use the Preview tab to look at the data and make sure all of the columns are appearing properly. 
+Yes, all columns and rows are availble
