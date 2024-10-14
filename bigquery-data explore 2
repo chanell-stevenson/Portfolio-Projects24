@@ -1,0 +1,480 @@
+BigQuery Data Exploration Part 2
+
+Step 1 - Open the dataset you created last time, which should be a table named Homelessness. Once you have opened it, click on the Query button and open a new query in a new tab.
+
+Step 2 - Using this dataset, answer the following questions. These first few questions can be answered by using ORDER BY and WHERE clauses. For reference, a list of all of the state abbreviations is listed HERE. 
+
+1. We want to develop some new programs to help unaccompanied homeless children under 18 years old, and need some locations to start some programs. What are the top 3 Continuum of Care areas (CoC_Name in the table) with the highest number of unaccompanied homeless youth under 18 in the year 2018.
+
+Answer: San Jose/Santa Clara City & County CoC = 506, Oregon Balance of State CoC = 243, Las Vegas/Clark County CoC = 214
+
+SQL Code Used:
+ SELECT
+    hud_pit_by_coc.CoC_Name,
+    sum(hud_pit_by_coc.Homeless_Unaccompanied_Youth_Under_18) AS Total_Homeless_Youth
+  FROM
+    `bigquery-public-data.sdoh_hud_pit_homelessness.hud_pit_by_coc` AS hud_pit_by_coc
+  WHERE hud_pit_by_coc.Count_Year = 2018
+  GROUP BY 1
+ORDER BY
+  Total_Homeless_Youth DESC
+LIMIT 3;
+
+2. We suspect that in Delaware (state abbreviation is “DE”), the number of unsheltered homeless people has been increasing over the past 7 years. Is this statement true? How do you know?
+
+Answer: no, there is no data to support it. 
+
+SQL Code Used:
+ SELECT
+    hud_pit_by_coc.Count_Year,
+    sum(hud_pit_by_coc.Unsheltered_Homeless) AS Total_Unsheltered_Homeless
+  FROM
+    `bigquery-public-data.sdoh_hud_pit_homelessness.hud_pit_by_coc` AS hud_pit_by_coc
+  WHERE hud_pit_by_coc.CoC_Name = 'Delaware'
+   AND hud_pit_by_coc.Count_Year BETWEEN EXTRACT(YEAR FROM CURRENT_DATE()) - 7 AND EXTRACT(YEAR FROM CURRENT_DATE()) - 1
+  GROUP BY 1
+ORDER BY
+  hud_pit_by_coc.Count_Year;
+
+
+
+3. The Safe Haven program was created in 1992 to provide shelter for people who are homeless and have a serious mental illness. However, funding for Safe Havens was cut in 2009, so no new Safe Havens could be created. Looking at data from only 2018, answer the following questions:
+In 2018, how many different locations had at least 1 person as a Sheltered_SH?
+
+Answer: 90
+
+SQL Code Used:
+SELECT
+    count(DISTINCT hud_pit_by_coc.CoC_Name) AS Location_Count
+  FROM
+    `bigquery-public-data.sdoh_hud_pit_homelessness.hud_pit_by_coc` AS hud_pit_by_coc
+  WHERE hud_pit_by_coc.Count_Year = 2018
+   AND hud_pit_by_coc.Sheltered_SH_Homeless >= 1;
+
+In 2018, what was the CoC_Name of the top 3 locations in terms of number of Sheltered_SH?
+
+Answer: Philadelphia CoC = 235, Reno, Sparks/Washoe County CoC = 185, Indianapolis CoC = 68
+
+SQL Code Used:
+SELECT
+    hud_pit_by_coc.CoC_Name,
+    sum(hud_pit_by_coc.Sheltered_SH_Homeless) AS Total_Sheltered_SH
+  FROM
+    `bigquery-public-data.sdoh_hud_pit_homelessness.hud_pit_by_coc` AS hud_pit_by_coc
+  WHERE hud_pit_by_coc.Count_Year = 2018
+  GROUP BY 1
+ORDER BY
+  Total_Sheltered_SH DESC
+LIMIT 3;
+
+
+4. What are the top 7 states in terms of Overall Homeless population in the year 2018? (Hint: This question will require the use of a GROUP BY clause in your query)
+
+Answer: NY = 91897, FL = 31030, TX = 25310, WA = 22304, MA = 20068, OR = 14476
+
+SQL Code Used:
+SELECT
+    homelessness.State,
+    sum(homelessness.Overall_Homeless) AS Total_Homeless_Population
+  FROM
+    `pro-exploration.chicken_fried.homelessness` AS homelessness
+  WHERE homelessness.Count_Year = 2018
+  GROUP BY 1
+  ORDER BY
+    Total_Homeless_Population DESC
+LIMIT 7;
+
+
+
+5. Below you will see a table of all of the states and their populations in 2018. If the Overall Homeless population were only correlated with the total state population, then the top 7 states for total population and the top 7 states for Overall Homeless population would be the same. 
+
+Is this the case? If not, which states are not lining up the same? NO, 
+
+
+We would say that homelessness is overrepresented in a state if that state listed higher in the Homeless ranking than it did in total population ranking, and it would be underrepresented if the homeless ranking was lower than the population ranking. With that in mind, which states in the top 7 homelessness list would be overrepresented for homelessness? NY, FL, TX
+
+
+
+
+
+6. In order to create better policies to support homeless individuals, we want to study locations that are doing a good job providing shelter. To do so, we need to identify places that have a relatively large number of homeless, but a relatively small number of unsheltered homeless.
+
+Generate a list of all locations, in 2018, that have more than 1000 Overall Homeless, but less than 100 unsheltered homeless. 
+
+Answer: 
+1 Anchorage CoC = 1094 o_h, 94 u_h
+2 Delaware Statewide CoC = 1082, 93
+3 Lynn CoC = 1061, 42
+4 Springfield/Hampden County CoC = 3368, 44
+5 Quincy, Brockton, Weymouth, Plymouth City and County CoC = 1090, 22
+6 Maine Statewide CoC = 2516, 98
+7 Omaha, Council Bluffs CoC = 1411, 64
+8 Nassau, Suffolk Counties CoC = 3868, 52
+9 Yonkers, Mount Vernon/Westchester County CoC =1827, 44
+10 Cincinnati/Hamilton County CoC = 1114, 47
+11 Cleveland/Cuyahoga County CoC = 1808, 78
+12 Rhode Island Statewide CoC = 1101, 51
+
+SQL Code Used:
+SELECT
+    hud_pit_by_coc.CoC_Name,
+    hud_pit_by_coc.Overall_Homeless,
+    hud_pit_by_coc.Unsheltered_Homeless
+  FROM
+    `bigquery-public-data.sdoh_hud_pit_homelessness.hud_pit_by_coc` AS hud_pit_by_coc
+  WHERE hud_pit_by_coc.Count_Year = 2018
+   AND hud_pit_by_coc.Overall_Homeless > 1000
+   AND hud_pit_by_coc.Unsheltered_Homeless < 100;
+
+
+
+From that same list, in which locations do Unsheltered Homeless account for less than 2% of the Overall Homeless population?
+
+Answer: 
+CoC_Name	Overall_Homeless	Unsheltered_Homeless	Unsheltered_Percentage
+Southeast Arkansas CoC	70	0	0.0
+Southeast Arkansas CoC	64	1	1.5625
+Southeast Arkansas CoC	64	0	0.0
+Delaware Statewide CoC	946	10	1.0570824524312896
+Augusta-Richmond County CoC	396	5	1.2626262626262625
+McHenry County CoC	196	3	1.5306122448979591
+"Waukegan, North Chicago/Lake County CoC"	409	5	1.2224938875305624
+"Waukegan, North Chicago/Lake County CoC"	497	5	1.0060362173038229
+"Waukegan, North Chicago/Lake County CoC"	450	5	1.1111111111111112
+South Central Illinois CoC	124	0	0.0
+"Rock Island, Moline/Northwestern Illinois CoC"	218	1	0.45871559633027525
+"Rock Island, Moline/Northwestern Illinois CoC"	219	1	0.45662100456621
+Springfield/Hampden County CoC	2690	35	1.3011152416356877
+Springfield/Hampden County CoC	2444	35	1.4320785597381342
+Massachusetts Balance of State CoC	3900	62	1.5897435897435899
+Massachusetts Balance of State CoC	1872	37	1.9764957264957264
+Garrett County CoC	7	0	0.0
+"Wicomico, Somerset, Worcester Counties CoC"	221	0	0.0
+Maine Statewide CoC	2393	33	1.3790221479314668
+"Portage, Kalamazoo City & County CoC"	681	10	1.4684287812041115
+Monroe City & County CoC	185	3	1.6216216216216217
+Holland/Ottawa County CoC	322	3	0.93167701863354035
+Northwest Minnesota CoC	253	4	1.5810276679841897
+Southwest Minnesota CoC	180	0	0.0
+"Omaha, Council Bluffs CoC"	1630	26	1.5950920245398774
+"Omaha, Council Bluffs CoC"	1476	17	1.1517615176151761
+"Omaha, Council Bluffs CoC"	1530	22	1.4379084967320261
+Paterson/Passaic County CoC	376	4	1.0638297872340425
+"Rochester, Irondequoit, Greece/Monroe County CoC"	699	0	0.0
+"Syracuse, Auburn/Onondaga, Oswego, Cayuga Counties CoC"	1024	16	1.5625
+"Syracuse, Auburn/Onondaga, Oswego, Cayuga Counties CoC"	882	16	1.8140589569160999
+"Wayne, Ontario, Seneca, Yates Counties CoC"	92	0	0.0
+"Wayne, Ontario, Seneca, Yates Counties CoC"	171	0	0.0
+"Wayne, Ontario, Seneca, Yates Counties CoC"	121	0	0.0
+"Jamestown, Dunkirk/Chautauqua County CoC"	62	1	1.6129032258064515
+"Jamestown, Dunkirk/Chautauqua County CoC"	33	0	0.0
+Clinton County CoC	133	2	1.5037593984962405
+"Columbia, Greene Counties CoC"	128	1	0.78125
+"Columbia, Greene Counties CoC"	132	0	0.0
+Poughkeepsie/Dutchess County CoC	403	7	1.7369727047146404
+"Nassau, Suffolk Counties CoC"	3207	64	1.9956345494231369
+"Yonkers, Mount Vernon/Westchester County CoC"	2138	20	0.93545369504209541
+"Yonkers, Mount Vernon/Westchester County CoC"	2054	22	1.071080817916261
+Sullivan County CoC	131	1	0.76335877862595414
+Sullivan County CoC	556	7	1.2589928057553956
+Sullivan County CoC	630	12	1.9047619047619049
+Cincinnati/Hamilton County CoC	1043	17	1.6299137104506232
+Cincinnati/Hamilton County CoC	1326	26	1.9607843137254901
+Toledo/Lucas County CoC	809	9	1.1124845488257107
+Cleveland/Cuyahoga County CoC	2103	28	1.331431288635283
+Youngstown/Mahoning County CoC	227	2	0.881057268722467
+"Lower Merion, Norristown, Abington/Montgomery County CoC"	438	6	1.36986301369863
+Reading/Berks County CoC	604	11	1.8211920529801324
+Scranton/Lackawanna County CoC	287	5	1.7421602787456445
+Scranton/Lackawanna County CoC	252	5	1.984126984126984
+Lancaster City & County CoC	498	6	1.2048192771084338
+Lancaster City & County CoC	518	10	1.9305019305019304
+Lancaster City & County CoC	562	9	1.6014234875444839
+Rhode Island Statewide CoC	1190	20	1.680672268907563
+Amarillo CoC	451	3	0.66518847006651882
+"Roanoke City & County, Salem CoC"	440	7	1.5909090909090908
+Lynchburg CoC	220	3	1.3636363636363635
+Tuscaloosa City & County CoC	57	1	1.7543859649122806
+Delta Hills CoC	89	0	0.0
+Delta Hills CoC	40	0	0.0
+Southeast Arkansas CoC	88	0	0.0
+Southeast Arkansas CoC	72	1	1.3888888888888888
+"Sioux City/Dakota, Woodbury Counties CoC"	288	2	0.69444444444444442
+"Waukegan, North Chicago/Lake County CoC"	386	5	1.2953367875647668
+Dekalb City & County CoC	101	2	1.9801980198019802
+West Central Illinois CoC	67	0	0.0
+West Central Illinois CoC	80	0	0.0
+West Central Illinois CoC	102	0	0.0
+Lexington-Fayette County CoC	1064	21	1.9736842105263157
+Lynn CoC	541	4	0.73937153419593349
+Springfield/Hampden County CoC	3368	44	1.3064133016627077
+Springfield/Hampden County CoC	2385	35	1.4675052410901468
+Springfield/Hampden County CoC	3002	10	0.33311125916055961
+Lowell CoC	658	12	1.82370820668693
+"Quincy, Brockton, Weymouth, Plymouth City and County CoC"	1803	28	1.5529672767609539
+Fall River CoC	386	7	1.8134715025906734
+Fall River CoC	406	0	0.0
+Harford County CoC	210	3	1.4285714285714286
+Carroll County CoC	136	0	0.0
+Garrett County CoC	15	0	0.0
+Garrett County CoC	10	0	0.0
+Garrett County CoC	20	0	0.0
+Garrett County CoC	9	0	0.0
+"Portage, Kalamazoo City & County CoC"	568	8	1.4084507042253522
+Lenawee County CoC	117	0	0.0
+Lenawee County CoC	128	0	0.0
+Monroe City & County CoC	193	3	1.5544041450777202
+Monroe City & County CoC	176	3	1.7045454545454544
+Livingston County CoC	103	2	1.9417475728155338
+Holland/Ottawa County CoC	261	4	1.5325670498084289
+Northwest Minnesota CoC	288	3	1.0416666666666665
+Northwest Minnesota CoC	290	2	0.68965517241379315
+Moorhead/West Central Minnesota CoC	215	3	1.3953488372093024
+Southwest Minnesota CoC	65	0	0.0
+Bergen County CoC	302	5	1.6556291390728477
+Burlington County CoC	926	13	1.4038876889848813
+Burlington County CoC	1347	8	0.59391239792130657
+Somerset County CoC	342	5	1.4619883040935671
+Cattaragus County CoC	33	0	0.0
+Cattaragus County CoC	34	0	0.0
+Cattaragus County CoC	27	0	0.0
+Cattaragus County CoC	41	0	0.0
+"Syracuse, Auburn/Onondaga, Oswego, Cayuga Counties CoC"	722	12	1.662049861495845
+"Syracuse, Auburn/Onondaga, Oswego, Cayuga Counties CoC"	922	16	1.735357917570499
+"Buffalo, Niagara Falls/Erie, Niagara, Orleans, Genesee, Wyoming Counties CoC"	957	15	1.5673981191222568
+"Buffalo, Niagara Falls/Erie, Niagara, Orleans, Genesee, Wyoming Counties CoC"	925	18	1.9459459459459458
+"Wayne, Ontario, Seneca, Yates Counties CoC"	58	0	0.0
+"Wayne, Ontario, Seneca, Yates Counties CoC"	187	0	0.0
+"Jamestown, Dunkirk/Chautauqua County CoC"	23	0	0.0
+"Jamestown, Dunkirk/Chautauqua County CoC"	29	0	0.0
+Clinton County CoC	197	1	0.50761421319796951
+Clinton County CoC	126	1	0.79365079365079361
+Clinton County CoC	132	2	1.5151515151515151
+"Columbia, Greene Counties CoC"	116	2	1.7241379310344827
+"Franklin, Essex Counties CoC"	42	0	0.0
+"Franklin, Essex Counties CoC"	28	0	0.0
+"Glens Falls, Saratoga Springs/Saratoga, Washington, Warren, Hamilton Counties Co"	282	0	0.0
+"Nassau, Suffolk Counties CoC"	3868	52	1.344364012409514
+"Nassau, Suffolk Counties CoC"	3937	64	1.6256032512065022
+"Yonkers, Mount Vernon/Westchester County CoC"	1750	34	1.9428571428571426
+"Yonkers, Mount Vernon/Westchester County CoC"	1797	27	1.5025041736227045
+Sullivan County CoC	167	2	1.1976047904191618
+Sullivan County CoC	163	0	0.0
+Sullivan County CoC	130	2	1.5384615384615385
+"Wilkes-Barre, Hazleton/Luzerne County CoC"	174	3	1.7241379310344827
+"Lower Merion, Norristown, Abington/Montgomery County CoC"	429	3	0.69930069930069927
+Chester County CoC	558	5	0.8960573476702508
+Reading/Berks County CoC	562	11	1.9572953736654803
+Reading/Berks County CoC	521	3	0.57581573896353166
+Reading/Berks County CoC	561	4	0.71301247771836007
+Lancaster City & County CoC	356	7	1.9662921348314606
+Erie City & County CoC	336	4	1.1904761904761905
+Amarillo CoC	478	6	1.2552301255230125
+Racine City & County CoC	196	1	0.51020408163265307
+
+
+SELECT
+    hud_pit_by_coc.CoC_Name,
+    hud_pit_by_coc.Overall_Homeless,
+    hud_pit_by_coc.Unsheltered_Homeless,
+    (hud_pit_by_coc.Unsheltered_Homeless / hud_pit_by_coc.Overall_Homeless) * 100 AS Unsheltered_Percentage
+  FROM
+    `bigquery-public-data.sdoh_hud_pit_homelessness.hud_pit_by_coc` AS hud_pit_by_coc
+  WHERE (hud_pit_by_coc.Unsheltered_Homeless / hud_pit_by_coc.Overall_Homeless) < NUMERIC '0.02'
+   AND hud_pit_by_coc.Overall_Homeless > 0;
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+US State and Territory* Population Ranking for 2018
+Rank
+State
+Population
+Rank
+State
+Population
+1
+California (CA)
+39776830
+29
+Connecticut (CT)
+3588683
+2
+Texas (TX)
+28704330
+30
+Puerto Rico (PR)
+3193354
+3
+Florida (FL)
+21312211
+31
+Iowa (IA)
+3160553
+4
+New York (NY)
+19862512
+32
+Utah (UT)
+3159345
+5
+Pennsylvania (PA)
+12823989
+33
+Nevada (NV)
+3056824
+6
+Illinois (IL)
+12768320
+34
+Arkansas (AR)
+3020327
+7
+Ohio (OH)
+11694664
+35
+Mississippi (MS)
+2982785
+8
+Georgia (GA)
+10545138
+36
+Kansas (KS)
+2918515
+9
+North Carolina (NC)
+10390149
+37
+New Mexico (NM)
+2090708
+10
+Michigan (MI)
+9991177
+38
+Nebraska (NE)
+1932549
+11
+New Jersey (NJ)
+9032872
+39
+West Virginia (WV)
+1803077
+12
+Virginia (VA)
+8525660
+40
+Idaho (ID)
+1753860
+13
+Washington (WA)
+7530552
+41
+Guam (GU)
+168678
+14
+Arizona (AZ)
+7123898
+42
+Hawaii (HI)
+1426393
+15
+Massachusetts (MA)
+6895917
+43
+New Hampshire (NH)
+1350575
+16
+Tennessee (TN)
+6782564
+44
+Maine (ME)
+1341582
+17
+Indiana (IN)
+6699629
+45
+Montana (MT)
+1062330
+18
+Missouri (MO)
+6135888
+46
+Rhode Island (RI)
+1061712
+19
+Maryland (MD)
+6079602
+47
+Delaware (DE)
+971180
+20
+Wisconsin (WI)
+5818049
+48
+South Dakota (SD)
+877790
+21
+Colorado (CO)
+5684203
+49
+North Dakota (ND)
+755238
+22
+Minnesota (MN)
+5628162
+50
+Alaska (AK)
+738068
+23
+South Carolina (SC)
+5088916
+51
+Washington DC (DC)
+703608
+24
+Alabama (AL)
+4888949
+52
+Vermont (VT)
+623960
+25
+Louisiana (LA)
+4682509
+53
+Wyoming (WY)
+573720
+26
+Kentucky (KY)
+4472265
+54
+Virgin Islands (VI)
+101365
+27
+Oregon (OR)
+4199563
+55
+Northern Mariana Islands (MP)
+50304
+28
+Oklahoma (OK)
+3940521
+
+
+
+
+
+
+
+United States and Territories 2-letter Abbreviations
+
